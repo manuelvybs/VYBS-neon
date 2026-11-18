@@ -8,6 +8,8 @@ import { Wheel } from './Wheel';
 import { EntityType } from '../enums/EntityType';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 export declare abstract class Vehicle extends THREE.Object3D implements IWorldEntity {
+    thirdPersonRadius: number;
+    chaseCamera: boolean;
     updateOrder: number;
     abstract entityType: EntityType;
     controllingCharacter: Character;
@@ -34,6 +36,7 @@ export declare abstract class Vehicle extends THREE.Object3D implements IWorldEn
     resetControls(): void;
     allowSleep(value: boolean): void;
     handleKeyboardEvent(event: KeyboardEvent, code: string, pressed: boolean): void;
+    isFirstPerson(): boolean;
     setFirstPersonView(value: boolean): void;
     toggleFirstPersonView(): void;
     triggerAction(actionName: string, value: boolean): void;

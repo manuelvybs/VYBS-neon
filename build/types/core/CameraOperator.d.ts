@@ -34,8 +34,11 @@ export declare class CameraOperator implements IInputReceiver, IUpdatable {
     topDownPhi: number;
     topDownRadius: number;
     private topDownBlend;
+    private lastManualMove;
+    private chaseFwd;
     setTopDown(enabled: boolean): void;
     toggleTopDown(): void;
+    private chaseCam;
     private isTopDownActive;
     move(deltaX: number, deltaY: number): void;
     update(timeScale: number): void;

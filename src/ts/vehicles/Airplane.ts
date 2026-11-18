@@ -38,6 +38,7 @@ export class Airplane extends Vehicle implements IControllable, IWorldEntity
 			axleLocal: new CANNON.Vec3(-1, 0, 0),
 			chassisConnectionPointLocal: new CANNON.Vec3(),
 		});
+		this.thirdPersonRadius = 7;
 
 		this.readAirplaneData(gltf);
 

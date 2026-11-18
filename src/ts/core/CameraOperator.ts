@@ -78,11 +78,14 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 	}
 
 	// Classic top-down view: fixed yaw, steep pitch, pulled back. The mouse doesn't orbit it.
-	public topDown: boolean = true;
+	public topDown: boolean = false;
 	public topDownTheta: number = 0;
 	public topDownPhi: number = 62;
 	public topDownRadius: number = 6.5;
-	private topDownBlend: number = 1;
+	private topDownBlend: number = 0;
+	// Last time the mouse turned the camera; the chase cam waits a moment before taking over again
+	private lastManualMove: number = -1e9;
+	private chaseFwd: THREE.Vector3 = new THREE.Vector3();
 
 	public setTopDown(enabled: boolean): void
 	{
@@ -101,6 +104,32 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 		this.setTopDown(!this.topDown);
 	}
 
+	// GTA-style driving camera: swing in behind whatever you are driving while it moves forward.
+	// Mouse look still works; the camera waits 1.5 s after you last moved it before taking over again.
+	private chaseCam(): void
+	{
+		if (this.isTopDownActive() || this.characterCaller !== undefined) return;
+		if (performance.now() - this.lastManualMove < 1500) return;
+
+		const receiver: any = this.world.inputManager.inputReceiver;
+		if (receiver === undefined) return;
+		const vehicle: any = receiver.controlledObject !== undefined ? receiver.controlledObject : (receiver.seats !== undefined ? receiver : undefined);
+		if (vehicle === undefined || vehicle.collision === undefined || vehicle.chaseCamera !== true) return;
+		if (typeof vehicle.isFirstPerson === 'function' && vehicle.isFirstPerson()) return;
+
+		const vel = vehicle.collision.velocity;
+		const speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+		if (speed < 2) return;
+		const fwd = this.chaseFwd.set(0, 0, 1).applyQuaternion(vehicle.quaternion);
+		if (fwd.x * vel.x + fwd.z * vel.z < 0) return;  // reversing: leave the camera alone
+
+		const desired = Math.atan2(-fwd.x, -fwd.z) * 180 / Math.PI;
+		const d = (((desired - this.theta) % 360) + 540) % 360 - 180;
+		const k = Math.min(0.12, 0.02 + speed * 0.004);
+		this.theta += d * k;
+		this.phi += (12 - this.phi) * 0.05;
+	}
+
 	// Top-down only applies while following a character or vehicle, not in free camera.
 	private isTopDownActive(): boolean
 	{
@@ -110,6 +139,7 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 	public move(deltaX: number, deltaY: number): void
 	{
 		if (this.isTopDownActive()) return;
+		if (deltaX !== 0 || deltaY !== 0) this.lastManualMove = performance.now();
 
 		this.theta -= deltaX * (this.sensitivity.x / 2);
 		this.theta %= 360;
@@ -131,6 +161,7 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 		else 
 		{
 			this.radius = THREE.MathUtils.lerp(this.radius, this.targetRadius, 0.1);
+			this.chaseCam();
 
 			// Ease between the orbit camera and the top-down camera instead of snapping.
 			this.topDownBlend = THREE.MathUtils.lerp(this.topDownBlend, this.isTopDownActive() ? 1 : 0, 0.08);

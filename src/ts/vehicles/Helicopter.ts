@@ -18,6 +18,9 @@ export class Helicopter extends Vehicle implements IControllable, IWorldEntity
 	constructor(gltf: any)
 	{
 		super(gltf);
+		this.thirdPersonRadius = 7;
+		// Helicopters strafe; an auto-follow camera would fight the pilot
+		this.chaseCamera = false;
 
 		this.readHelicopterData(gltf);
 

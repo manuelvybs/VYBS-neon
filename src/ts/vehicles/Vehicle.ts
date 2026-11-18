@@ -15,6 +15,10 @@ import { IWorldEntity } from '../interfaces/IWorldEntity';
 
 export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 {
+	// How far back the driving camera sits
+	public thirdPersonRadius: number = 4.4;
+	// Whether the GTA-style camera swings in behind this vehicle while it drives forward
+	public chaseCamera: boolean = true;
 	public updateOrder: number = 2;
 	public abstract entityType: EntityType;
 	
@@ -186,6 +190,11 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 		}
 	}
 
+	public isFirstPerson(): boolean
+	{
+		return this.firstPerson;
+	}
+
 	public setFirstPersonView(value: boolean): void
 	{
 		this.firstPerson = value;
@@ -197,7 +206,7 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 		}
 		else
 		{
-			this.world.cameraOperator.setRadius(3, true);
+			this.world.cameraOperator.setRadius(this.thirdPersonRadius, true);
 		}
 	}
 

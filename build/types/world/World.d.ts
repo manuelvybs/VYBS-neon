@@ -13,6 +13,7 @@ import { Path } from './Path';
 import { Vehicle } from '../vehicles/Vehicle';
 import { Scenario } from './Scenario';
 import { Sky } from './Sky';
+import { ChaseMode } from './ChaseMode';
 export declare class World {
     renderer: THREE.WebGLRenderer;
     camera: THREE.PerspectiveCamera;
@@ -43,6 +44,7 @@ export declare class World {
     paths: Path[];
     scenarioGUIFolder: any;
     updatables: IUpdatable[];
+    chase: ChaseMode;
     fxaaPass: any;
     private retroGUIController;
     private topDownGUIController;

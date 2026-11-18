@@ -31,6 +31,7 @@ import { Vehicle } from '../vehicles/Vehicle';
 import { Scenario } from './Scenario';
 import { Sky } from './Sky';
 import { Ocean } from './Ocean';
+import { ChaseMode } from './ChaseMode';
 
 export class World
 {
@@ -63,6 +64,7 @@ export class World
 	public paths: Path[] = [];
 	public scenarioGUIFolder: any;
 	public updatables: IUpdatable[] = [];
+	public chase: ChaseMode;
 	public fxaaPass: any;
 	private retroGUIController: any;
 	private topDownGUIController: any;
@@ -156,27 +158,13 @@ export class World
 		this.inputManager = new InputManager(this, this.renderer.domElement);
 		this.cameraOperator = new CameraOperator(this, this.camera, this.params.Mouse_Sensitivity);
 		this.sky = new Sky(this);
+		this.chase = new ChaseMode(this);
 		
 		// Load scene if path is supplied
 		if (worldScenePath !== undefined)
 		{
 			let loadingManager = new LoadingManager(this);
-			loadingManager.onFinishedCallback = () =>
-			{
-				this.update(1, 1);
-				this.setTimeScale(1);
-	
-				Swal.fire({
-					title: 'Welcome to VYBS-neon!',
-					text: 'Feel free to explore the world and interact with available vehicles. There are also various scenarios ready to launch from the right panel.',
-					footer: '<a href="https://github.com/swift502/Sketchbook" target="_blank">GitHub page</a><a href="https://discord.gg/fGuEqCe" target="_blank">Discord server</a>',
-					confirmButtonText: 'Okay',
-					buttonsStyling: false,
-					onClose: () => {
-						UIManager.setUserInterfaceVisible(true);
-					}
-				});
-			};
+			// No welcome popup: the chase mode sets its own start-up callback and drops you into the action
 			loadingManager.loadGLTF(worldScenePath, (gltf) =>
 				{
 					this.loadScene(loadingManager, gltf);
@@ -336,6 +324,10 @@ export class World
 
 	public loadScene(loadingManager: LoadingManager, gltf: any): void
 	{
+		// Car chase sits at the top of the Scenarios menu
+		this.params['Car chase'] = () => this.chase.launch();
+		this.scenarioGUIFolder.add(this.params, 'Car chase');
+
 		gltf.scene.traverse((child) => {
 			if (child.hasOwnProperty('userData'))
 			{
@@ -395,19 +387,13 @@ export class World
 
 		this.graphicsWorld.add(gltf.scene);
 
-		// Launch default scenario
-		let defaultScenarioID: string;
-		for (const scenario of this.scenarios) {
-			if (scenario.default) {
-				defaultScenarioID = scenario.id;
-				break;
-			}
-		}
-		if (defaultScenarioID !== undefined) this.launchScenario(defaultScenarioID, loadingManager);
+		// Open straight into the car chase; the other scenarios stay in the menu
+		this.chase.launch(loadingManager);
 	}
 	
 	public launchScenario(scenarioID: string, loadingManager?: LoadingManager): void
 	{
+		this.chase.stop();
 		this.lastScenarioID = scenarioID;
 
 		this.clearEntities();
@@ -423,6 +409,13 @@ export class World
 
 	public restartScenario(): void
 	{
+		if (this.chase.isActive())
+		{
+			document.exitPointerLock();
+			this.chase.launch();
+			return;
+		}
+
 		if (this.lastScenarioID !== undefined)
 		{
 			document.exitPointerLock();
@@ -584,7 +577,7 @@ export class World
 			Debug_Physics: false,
 			Debug_FPS: false,
 			Retro_Filter: true,
-			Top_Down: true,
+			Top_Down: false,
 			Sun_Elevation: 22,
 			Sun_Rotation: 145,
 		};

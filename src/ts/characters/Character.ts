@@ -444,7 +444,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			return;
 		}
 
-		this.world.cameraOperator.setRadius(1.6, true);
+		this.world.cameraOperator.setRadius(2.4, true);
 		this.world.cameraOperator.followMode = false;
 		// this.world.dirLight.target = this;
 
