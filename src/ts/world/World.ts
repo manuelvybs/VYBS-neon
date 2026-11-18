@@ -167,7 +167,7 @@ export class World
 				this.setTimeScale(1);
 	
 				Swal.fire({
-					title: 'Welcome to Sketchbook!',
+					title: 'Welcome to VYBS-neon!',
 					text: 'Feel free to explore the world and interact with available vehicles. There are also various scenarios ready to launch from the right panel.',
 					footer: '<a href="https://github.com/swift502/Sketchbook" target="_blank">GitHub page</a><a href="https://discord.gg/fGuEqCe" target="_blank">Discord server</a>',
 					confirmButtonText: 'Okay',
@@ -190,7 +190,7 @@ export class World
 			Swal.fire({
 				icon: 'success',
 				title: 'Hello world!',
-				text: 'Empty Sketchbook world was succesfully initialized. Enjoy the blueness of the sky.',
+				text: 'Empty VYBS-neon world was successfully initialized. Enjoy the blueness of the sky.',
 				buttonsStyling: false
 			});
 		}
@@ -501,7 +501,7 @@ export class World
 		// Loader
 		$(`	<div id="loading-screen">
 				<div id="loading-screen-background"></div>
-				<h1 id="main-title" class="sb-font">Sketchbook 0.4</h1>
+				<h1 id="main-title" class="sb-font">VYBS-neon</h1>
 				<div class="cubeWrap">
 					<div class="cube">
 						<div class="faces1"></div>
