@@ -29,6 +29,14 @@ export declare class CameraOperator implements IInputReceiver, IUpdatable {
     constructor(world: World, camera: THREE.Camera, sensitivityX?: number, sensitivityY?: number);
     setSensitivity(sensitivityX: number, sensitivityY?: number): void;
     setRadius(value: number, instantly?: boolean): void;
+    topDown: boolean;
+    topDownTheta: number;
+    topDownPhi: number;
+    topDownRadius: number;
+    private topDownBlend;
+    setTopDown(enabled: boolean): void;
+    toggleTopDown(): void;
+    private isTopDownActive;
     move(deltaX: number, deltaY: number): void;
     update(timeScale: number): void;
     handleKeyboardEvent(event: KeyboardEvent, code: string, pressed: boolean): void;

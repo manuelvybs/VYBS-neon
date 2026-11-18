@@ -63,6 +63,9 @@ export class World
 	public paths: Path[] = [];
 	public scenarioGUIFolder: any;
 	public updatables: IUpdatable[] = [];
+	public fxaaPass: any;
+	private retroGUIController: any;
+	private topDownGUIController: any;
 
 	private lastScenarioID: string;
 
@@ -87,7 +90,9 @@ export class World
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setPixelRatio(window.devicePixelRatio);
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
-		this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+		// Retro neon: palette colours show as authored, no filmic tone curve
+		this.renderer.toneMapping = THREE.NoToneMapping;
+		this.renderer.outputEncoding = THREE.sRGBEncoding;
 		this.renderer.toneMappingExposure = 1.0;
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -97,21 +102,20 @@ export class World
 		// Auto window resize
 		function onWindowResize(): void
 		{
-			scope.camera.aspect = window.innerWidth / window.innerHeight;
-			scope.camera.updateProjectionMatrix();
-			scope.renderer.setSize(window.innerWidth, window.innerHeight);
-			fxaaPass.uniforms['resolution'].value.set(1 / (window.innerWidth * pixelRatio), 1 / (window.innerHeight * pixelRatio));
-			scope.composer.setSize(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
+			// Updates the camera aspect, renderer, composer and retro filter in one place
+			scope.applyRetroFilter();
 		}
 		window.addEventListener('resize', onWindowResize, false);
 
 		// Three.js scene
 		this.graphicsWorld = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1010);
+		this.graphicsWorld.fog = new THREE.Fog(new THREE.Color(0x3A1259).convertSRGBToLinear().getHex(), 70, 340);
 
 		// Passes
 		let renderPass = new RenderPass( this.graphicsWorld, this.camera );
 		let fxaaPass = new ShaderPass( FXAAShader );
+		this.fxaaPass = fxaaPass;
 
 		// FXAA
 		let pixelRatio = this.renderer.getPixelRatio();
@@ -146,6 +150,7 @@ export class World
 		this.stats = Stats();
 		// Create right panel GUI
 		this.createParamsGUI(scope);
+		this.applyRetroFilter();
 
 		// Initialization
 		this.inputManager = new InputManager(this, this.renderer.domElement);
@@ -293,7 +298,7 @@ export class World
 		this.stats.begin();
 
 		// Actual rendering with a FXAA ON/OFF switch
-		if (this.params.FXAA) this.composer.render();
+		if (this.params.FXAA && !this.params.Retro_Filter) this.composer.render();
 		else this.renderer.render(this.graphicsWorld, this.camera);
 
 		// Measuring render time
@@ -337,7 +342,7 @@ export class World
 				if (child.type === 'Mesh')
 				{
 					Utils.setupMeshProperties(child);
-					this.sky.csm.setupMaterial(child.material);
+					if (Utils.isLitMaterial(child.material)) this.sky.csm.setupMaterial(child.material);
 
 					if (child.material.name === 'ocean')
 					{
@@ -466,6 +471,12 @@ export class World
 		let html = '';
 		html += '<h2 class="controls-title">Controls:</h2>';
 
+		// View toggles work everywhere
+		controls = controls.concat([
+			{ keys: ['T'], desc: 'Top-down / third person' },
+			{ keys: ['P'], desc: 'Retro filter' },
+		]);
+
 		controls.forEach((row) =>
 		{
 			html += '<div class="ctrl-row">';
@@ -525,6 +536,43 @@ export class World
 		this.renderer.domElement.id = 'canvas';
 	}
 
+	// Retro filter: render at about RETRO_ROWS rows and let the browser upscale with hard pixel edges,
+	// plus a scanline overlay. FXAA is skipped while it is on so the pixels stay crisp.
+	public applyRetroFilter(): void
+	{
+		const RETRO_ROWS = 300;
+		const w = window.innerWidth;
+		const h = window.innerHeight;
+		const on = this.params !== undefined && this.params.Retro_Filter === true;
+		const ratio = on ? Math.min(window.devicePixelRatio, RETRO_ROWS / h) : window.devicePixelRatio;
+
+		this.camera.aspect = w / h;
+		this.camera.updateProjectionMatrix();
+		this.renderer.setPixelRatio(ratio);
+		this.renderer.setSize(w, h);
+		if (this.composer !== undefined) this.composer.setSize(w * ratio, h * ratio);
+		if (this.fxaaPass !== undefined) this.fxaaPass.uniforms['resolution'].value.set(1 / (w * ratio), 1 / (h * ratio));
+		this.renderer.domElement.style.imageRendering = on ? 'pixelated' : 'auto';
+
+		let scan = document.getElementById('retro-scanlines');
+		if (scan === null)
+		{
+			scan = document.createElement('div');
+			scan.id = 'retro-scanlines';
+			scan.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;';
+			this.renderer.domElement.insertAdjacentElement('afterend', scan);
+		}
+		const rowPx = Math.max(2, Math.round(1 / ratio));
+		scan.style.background = `repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) ${rowPx - 1}px, rgba(0,0,0,0.22) ${rowPx - 1}px, rgba(0,0,0,0.22) ${rowPx}px)`;
+		scan.style.display = on ? 'block' : 'none';
+	}
+
+	public toggleRetroFilter(): void
+	{
+		this.params.Retro_Filter = !this.params.Retro_Filter;
+		this.applyRetroFilter();
+	}
+
 	private createParamsGUI(scope: World): void
 	{
 		this.params = {
@@ -535,7 +583,9 @@ export class World
 			FXAA: true,
 			Debug_Physics: false,
 			Debug_FPS: false,
-			Sun_Elevation: 50,
+			Retro_Filter: true,
+			Top_Down: true,
+			Sun_Elevation: 22,
 			Sun_Rotation: 145,
 		};
 
@@ -565,6 +615,10 @@ export class World
 
 		// Input
 		let settingsFolder = gui.addFolder('Settings');
+		this.retroGUIController = settingsFolder.add(this.params, 'Retro_Filter').listen()
+			.onChange(() => scope.applyRetroFilter());
+		this.topDownGUIController = settingsFolder.add(this.params, 'Top_Down').listen()
+			.onChange((value) => scope.cameraOperator.setTopDown(value));
 		settingsFolder.add(this.params, 'FXAA');
 		settingsFolder.add(this.params, 'Shadows')
 			.onChange((enabled) =>

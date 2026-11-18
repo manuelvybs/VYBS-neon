@@ -36,6 +36,7 @@ export declare function cannonVector(vec: THREE.Vector3): CANNON.Vec3;
 export declare function threeQuat(quat: CANNON.Quaternion): THREE.Quaternion;
 export declare function cannonQuat(quat: THREE.Quaternion): CANNON.Quaternion;
 export declare function setupMeshProperties(child: any): void;
+export declare function isLitMaterial(mat: any): boolean;
 export declare function detectRelativeSide(from: Object3D, to: Object3D): Side;
 export declare function easeInOutSine(x: number): number;
 export declare function easeOutQuad(x: number): number;

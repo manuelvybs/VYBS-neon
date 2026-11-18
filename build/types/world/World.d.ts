@@ -43,6 +43,9 @@ export declare class World {
     paths: Path[];
     scenarioGUIFolder: any;
     updatables: IUpdatable[];
+    fxaaPass: any;
+    private retroGUIController;
+    private topDownGUIController;
     private lastScenarioID;
     constructor(worldScenePath?: any);
     update(timeStep: number, unscaledTimeStep: number): void;
@@ -68,5 +71,7 @@ export declare class World {
     scrollTheTimeScale(scrollAmount: number): void;
     updateControls(controls: any): void;
     private generateHTML;
+    applyRetroFilter(): void;
+    toggleRetroFilter(): void;
     private createParamsGUI;
 }

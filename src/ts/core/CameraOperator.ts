@@ -77,8 +77,40 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 		}
 	}
 
+	// Classic top-down view: fixed yaw, steep pitch, pulled back. The mouse doesn't orbit it.
+	public topDown: boolean = true;
+	public topDownTheta: number = 0;
+	public topDownPhi: number = 62;
+	public topDownRadius: number = 6.5;
+	private topDownBlend: number = 1;
+
+	public setTopDown(enabled: boolean): void
+	{
+		this.topDown = enabled;
+		if (this.world.params !== undefined) this.world.params.Top_Down = enabled;
+		// Coming back to third person: start behind the target at a comfortable angle.
+		if (!enabled)
+		{
+			this.theta = this.topDownTheta;
+			this.phi = 15;
+		}
+	}
+
+	public toggleTopDown(): void
+	{
+		this.setTopDown(!this.topDown);
+	}
+
+	// Top-down only applies while following a character or vehicle, not in free camera.
+	private isTopDownActive(): boolean
+	{
+		return this.topDown && this.characterCaller === undefined;
+	}
+
 	public move(deltaX: number, deltaY: number): void
 	{
+		if (this.isTopDownActive()) return;
+
 		this.theta -= deltaX * (this.sensitivity.x / 2);
 		this.theta %= 360;
 		this.phi += deltaY * (this.sensitivity.y / 2);
@@ -99,10 +131,18 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 		else 
 		{
 			this.radius = THREE.MathUtils.lerp(this.radius, this.targetRadius, 0.1);
-	
-			this.camera.position.x = this.target.x + this.radius * Math.sin(this.theta * Math.PI / 180) * Math.cos(this.phi * Math.PI / 180);
-			this.camera.position.y = this.target.y + this.radius * Math.sin(this.phi * Math.PI / 180);
-			this.camera.position.z = this.target.z + this.radius * Math.cos(this.theta * Math.PI / 180) * Math.cos(this.phi * Math.PI / 180);
+
+			// Ease between the orbit camera and the top-down camera instead of snapping.
+			this.topDownBlend = THREE.MathUtils.lerp(this.topDownBlend, this.isTopDownActive() ? 1 : 0, 0.08);
+			const b = this.topDownBlend;
+			const dTheta = (((this.topDownTheta - this.theta) % 360) + 540) % 360 - 180;
+			const theta = this.theta + dTheta * b;
+			const phi = THREE.MathUtils.lerp(this.phi, this.topDownPhi, b);
+			const radius = THREE.MathUtils.lerp(this.radius, Math.max(this.topDownRadius, this.radius * 2.2), b);
+
+			this.camera.position.x = this.target.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+			this.camera.position.y = this.target.y + radius * Math.sin(phi * Math.PI / 180);
+			this.camera.position.z = this.target.z + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
 			this.camera.updateMatrix();
 			this.camera.lookAt(this.target);
 		}

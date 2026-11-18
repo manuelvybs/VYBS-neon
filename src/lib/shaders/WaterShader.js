@@ -61,8 +61,8 @@ export let WaterShader = {
     const float SEA_CHOPPY = 1.0;
     const float SEA_SPEED = 1.0;
     const float SEA_FREQ = 0.16;
-    const vec3 SEA_BASE = vec3(0.1,0.19,0.22);
-    const vec3 SEA_WATER_COLOR = vec3(0.8,0.9,0.6);
+    const vec3 SEA_BASE = vec3(0.02,0.07,0.13);
+    const vec3 SEA_WATER_COLOR = vec3(0.10,0.75,0.85);
     mat2 octave_m = mat2(1.6,1.2,-1.2,1.6);
   
     mat3 fromEuler(vec3 ang) {
@@ -115,11 +115,11 @@ export let WaterShader = {
   
     vec3 getSkyColor(vec3 e) {
       e.y = max(e.y, 0.0);
-      vec3 ret;
-      ret.x = pow(1.0 - e.y, 2.0);
-      ret.y = 1.0 - e.y;
-      ret.z = 0.6+(1.0 - e.y) * 0.4;
-      return ret;
+      // synthwave sky reflected in the sea
+      vec3 top = vec3(0.106, 0.043, 0.200);
+      vec3 mid = vec3(0.357, 0.102, 0.478);
+      vec3 pink = vec3(1.000, 0.180, 0.592);
+      return mix(pink, mix(mid, top, smoothstep(0.3, 0.8, e.y)), smoothstep(0.0, 0.3, e.y));
     }
   
   

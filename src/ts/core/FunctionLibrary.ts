@@ -270,24 +270,71 @@ export function cannonQuat(quat: THREE.Quaternion): CANNON.Quaternion
 	return new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w);
 }
 
+// Material names written by tools/retro/*.py
+const RETRO_ATLAS_MATERIALS = ['retro', 'neon', 'glow', 'visor'];
+
 export function setupMeshProperties(child: any): void
 {
 	child.castShadow = true;
 	child.receiveShadow = true;
 
-	if (child.material.map !== null)
+	const name: string = child.material.name;
+	const map = child.material.map;
+
+	// The palette atlas holds flat swatches; mipmaps would blend neighbouring swatches at a distance.
+	if (map && RETRO_ATLAS_MATERIALS.indexOf(name) !== -1)
+	{
+		map.generateMipmaps = false;
+		map.minFilter = THREE.LinearFilter;
+		map.magFilter = THREE.LinearFilter;
+		map.needsUpdate = true;
+	}
+
+	// Neon tubes: unlit, full brightness, not dimmed by fog.
+	if (name === 'neon' || name === 'glow')
+	{
+		let basic = new THREE.MeshBasicMaterial({ map: map, fog: false });
+		basic.name = name;
+		if (name === 'glow')
+		{
+			basic.transparent = true;
+			basic.opacity = 0.35;
+			basic.blending = THREE.AdditiveBlending;
+			basic.depthWrite = false;
+			child.receiveShadow = false;
+			child.renderOrder = 1;
+		}
+		child.castShadow = false;
+		child.material = basic;
+		return;
+	}
+
+	if (map !== null)
 	{
 		let mat = new THREE.MeshPhongMaterial();
 		mat.shininess = 0;
-		mat.name = child.material.name;
-		mat.map = child.material.map;
-		mat.map.anisotropy = 4;
+		mat.name = name;
+		mat.map = map;
+		// Anisotropy needs mipmaps, which the flat-colour atlas does not use
+		if (RETRO_ATLAS_MATERIALS.indexOf(name) === -1) mat.map.anisotropy = 4;
 		mat.aoMap = child.material.aoMap;
 		mat.transparent = child.material.transparent;
+		mat.alphaTest = child.material.alphaTest;
 		mat.skinning = child.material.skinning;
-		// mat.map.encoding = THREE.LinearEncoding;
+		if (name === 'visor')
+		{
+			// Rounded visor shape is cut out of the atlas with alpha.
+			mat.transparent = false;
+			mat.alphaTest = 0.5;
+		}
 		child.material = mat;
 	}
+}
+
+// Shadow cascades only make sense for lit materials.
+export function isLitMaterial(mat: any): boolean
+{
+	return mat !== undefined && mat.isMeshBasicMaterial !== true;
 }
 
 export function detectRelativeSide(from: Object3D, to: Object3D): Side

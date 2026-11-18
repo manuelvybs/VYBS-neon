@@ -142,6 +142,19 @@ export class InputManager implements IUpdatable
 
 	public onKeyDown(event: KeyboardEvent): void
 	{
+		// Global view toggles, whatever is being controlled.
+		// Skipped while typing in a settings field, since these flip state permanently.
+		const target = event.target as HTMLElement;
+		const typing = target !== null && target !== undefined &&
+			(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+		const plainKey = !event.repeat && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey;
+		if (!typing && plainKey && (event.code === 'KeyT' || event.code === 'KeyP'))
+		{
+			if (event.code === 'KeyT') this.world.cameraOperator.toggleTopDown();
+			else this.world.toggleRetroFilter();
+			return;
+		}
+
 		if (this.inputReceiver !== undefined)
 		{
 			this.inputReceiver.handleKeyboardEvent(event, event.code, true);
